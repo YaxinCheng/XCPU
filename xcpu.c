@@ -30,7 +30,9 @@ extern int xcpu_execute( xcpu *c ) {
   short operand = ins >> 6; // Check the first two bits
   if (operand == 0) { // 00. The last 8 bits are 0
     if (ins == I_RET) { // ret
-      c->pc = c->regs[X_STACK_REG];
+      unsigned char cmd[2];
+      xmem_load(c->regs[X_STACK_REG], cmd);
+      c->pc = (cmd[0] << 8) + cmd[1];
       c->regs[X_STACK_REG] += 2;
     } else if (ins == I_CLD) { c->state &= 0xFFFD; }// cld
     else if (ins == I_STD) { c->state |= 0x0002; }// std
@@ -58,7 +60,7 @@ extern int xcpu_execute( xcpu *c ) {
       xmem_store(tmp, c->regs[X_STACK_REG]);
       c->pc = c->regs[param];
     }
-    else if (ins == I_OUT) { printf("%d", c->regs[param]); }
+    else if (ins == I_OUT) { printf("%c", c->regs[param]); }
     else if (ins == I_BR) {// br
       if ((c->state & 0x0001) == 0x001) { c->pc += par - 2; }
     } else if (ins == I_JR) { c->pc += param; }// jr

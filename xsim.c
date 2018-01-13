@@ -16,6 +16,7 @@ int main( int argc, char **argv ) {
   for(; curr_cycle < cycles; curr_cycle += 1 ) {
     int running = xcpu_execute(cpu);
     if (running == 0) { break; }
+    if (argc < 4) 
     xcpu_print(cpu);
   }
   return 0;

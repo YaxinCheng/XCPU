@@ -63,7 +63,7 @@ extern int xcpu_execute( xcpu *c ) {
     else if (ins == I_OUT) { printf("%c", c->regs[param]); }
     else if (ins == I_BR) {// br
       if ((c->state & 0x0001) == 0x001) { c->pc += par - 2; }
-    } else if (ins == I_JR) { c->pc += param; }// jr
+    } else if (ins == I_JR) { c->pc += par - 2; }// jr
   } else if (operand == 2) {// 10
     short first = par >> 4;
     short second = par & 15;// par & 0000 1111

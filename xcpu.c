@@ -26,7 +26,7 @@ extern int xcpu_execute( xcpu *c ) {
   }
   c->pc += 2;// Increase pc
   
-  if (ins == I_BAD) { return 0; }
+  if (ins == I_BAD) { return 2; }
   short operand = ins >> 6; // Check the first two bits
   if (operand == 0) { // 00. The last 8 bits are 0
     if (ins == I_RET) { // ret
@@ -36,6 +36,7 @@ extern int xcpu_execute( xcpu *c ) {
       c->regs[X_STACK_REG] += 2;
     } else if (ins == I_CLD) { c->state &= 0xFFFD; }// cld
     else if (ins == I_STD) { c->state |= 0x0002; }// std
+    return 1;
   } else if (operand == 1) {// 01
     short param = par >> 4;
     if (ins == I_NEG) { c->regs[param] *= -1; }// neg
@@ -62,8 +63,16 @@ extern int xcpu_execute( xcpu *c ) {
     }
     else if (ins == I_OUT) { printf("%c", c->regs[param]); }
     else if (ins == I_BR) {// br
-      if ((c->state & 0x0001) == 0x001) { c->pc += par - 2; }
-    } else if (ins == I_JR) { c->pc += par - 2; }// jr
+      if ((c->state & 0x0001) == 0x001) {
+        par = par >> 7 ? -(256 - par) : par;
+        c->pc += par - 2; 
+      }
+    } else if (ins == I_JR) { 
+      par = par >> 7 ? -(256 - par) : par;
+      //printf("par >> 7 == %d, par = %d\n", par>>7, par);
+      c->pc += par - 2;
+    }// jr
+    return 1;
   } else if (operand == 2) {// 10
     short first = par >> 4;
     short second = par & 15;// par & 0000 1111
@@ -81,7 +90,9 @@ extern int xcpu_execute( xcpu *c ) {
       unsigned short rS2 = c->regs[second];
       if ((ins == I_TEST && (rS1 & rS2))
           || (ins == I_CMP && (rS1 < rS2))
-          || (ins == I_EQU && (rS1 == rS2))) { c->state |= 0x0001; }
+          || (ins == I_EQU && (rS1 == rS2))) { 
+        c->state |= 0x0001; 
+      }
       else { c->state &= 0xFFFE; }
     } else if (ins == I_MOV) { c->regs[second] = c->regs[first]; }
     else if (ins == I_LOAD) { 
@@ -104,15 +115,15 @@ extern int xcpu_execute( xcpu *c ) {
       instruction[0] = c->regs[first];
       xmem_store(instruction, c->regs[second]);
     }
+    return 1;
   } else { // 11
     short third_bit = (ins >> 5) & 1;// right shift 5, check the right most
     if (third_bit == 0) {
       unsigned char tmp[2];
       xmem_load(c->pc, tmp);
       unsigned short L = (tmp[0] << 8) + tmp[1];
-      c->pc += 2;
       if (ins == I_JMP) { c->pc = L; }// JMP
-      else if (ins == I_CALL) {// CALLR
+      else if (ins == I_CALL) {// CALL
         c->regs[X_STACK_REG] -= 2;
         unsigned char tmp[2] = {c->pc >> 8, c->pc & 255 };
         xmem_store(tmp, c->regs[X_STACK_REG]);
@@ -122,10 +133,12 @@ extern int xcpu_execute( xcpu *c ) {
       unsigned char cmd[2];
       xmem_load(c->pc, cmd);
       c->regs[par>>4] = (cmd[0] << 8) + cmd[1];
+      //printf("par >> 4 = %d, c->regs[par>>4] = %d\n", par >> 4, c->regs[par>>4]);
       c->pc += 2;
     }
+    return 1;
   }
-  return 1; /* replace this as needed */
+  return 0; /* replace this as needed */
 }
 
 

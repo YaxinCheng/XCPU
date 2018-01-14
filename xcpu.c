@@ -17,8 +17,8 @@
 extern int xcpu_execute( xcpu *c ) {
 
   /* Your code here */
-  short ins, par; 
-  {
+  short ins, par; // Every word is [ ins(8-bit) | par (8-bit) ]
+  {// read in the instruction and separate to ins and par
     unsigned char instruction[2];
     xmem_load(c->pc, instruction);// Load command
     ins = instruction[0];
@@ -26,9 +26,9 @@ extern int xcpu_execute( xcpu *c ) {
   }
   c->pc += 2;// Increase pc
   
-  if (ins == I_BAD) { return 2; }
+  if (ins == I_BAD) { return 2; }// null reached
   short operand = ins >> 6; // Check the first two bits
-  if (operand == 0) { // 00. The last 8 bits are 0
+  if (operand == 0) { // 00
     if (ins == I_RET) { // ret
       unsigned char cmd[2];
       xmem_load(c->regs[X_STACK_REG], cmd);
@@ -61,30 +61,31 @@ extern int xcpu_execute( xcpu *c ) {
       xmem_store(tmp, c->regs[X_STACK_REG]);
       c->pc = c->regs[param];
     }
-    else if (ins == I_OUT) { printf("%c", c->regs[param]); }
+    else if (ins == I_OUT) { printf("%c", c->regs[param]); }// out
     else if (ins == I_BR) {// br
       if ((c->state & 0x0001) == 0x001) {
-        par = par >> 7 ? -(256 - par) : par;
+        par = par >> 7 ? -(256 - par) : par;// in br, the L is signed
         c->pc += par - 2; 
       }
-    } else if (ins == I_JR) { 
-      par = par >> 7 ? -(256 - par) : par;
+    } else if (ins == I_JR) { // jr
+      par = par >> 7 ? -(256 - par) : par;// in jr, the L is signed
       c->pc += par - 2;
     }// jr
     return 1;
   } else if (operand == 2) {// 10
     short first = par >> 4;
     short second = par & 15;// par & 0000 1111
-    if (ins == I_ADD) { c->regs[second] += c->regs[first]; }
-    else if (ins == I_SUB) { c->regs[second] -= c->regs[first]; }
-    else if (ins == I_MUL) { c->regs[second] *= c->regs[first]; }
-    else if (ins == I_DIV) { c->regs[second] /= c->regs[first]; }
-    else if (ins == I_AND) { c->regs[second] &= c->regs[first]; }
-    else if (ins == I_OR ) { c->regs[second] |= c->regs[first]; }
-    else if (ins == I_XOR) { c->regs[second] ^= c->regs[first]; }
-    else if (ins == I_SHR) { c->regs[second] >>= c->regs[first]; }
-    else if (ins == I_SHL) { c->regs[second] <<= c->regs[first]; }
-    else if (ins == I_TEST || ins == I_CMP || ins == I_EQU) { 
+    if (ins == I_ADD) { c->regs[second] += c->regs[first]; }// add
+    else if (ins == I_SUB) { c->regs[second] -= c->regs[first]; }//sub
+    else if (ins == I_MUL) { c->regs[second] *= c->regs[first]; }//mul
+    else if (ins == I_DIV) { c->regs[second] /= c->regs[first]; }//div
+    else if (ins == I_AND) { c->regs[second] &= c->regs[first]; }//and
+    else if (ins == I_OR ) { c->regs[second] |= c->regs[first]; }//or
+    else if (ins == I_XOR) { c->regs[second] ^= c->regs[first]; }//xor
+    else if (ins == I_SHR) { c->regs[second] >>= c->regs[first]; }//shr
+    else if (ins == I_SHL) { c->regs[second] <<= c->regs[first]; }//shl
+    else if (ins == I_TEST || ins == I_CMP || ins == I_EQU) {
+      // test, cmp, equ
       unsigned short rS1 = c->regs[first];
       unsigned short rS2 = c->regs[second];
       if ((ins == I_TEST && (rS1 & rS2))
@@ -93,22 +94,22 @@ extern int xcpu_execute( xcpu *c ) {
         c->state |= 0x0001; 
       }
       else { c->state &= 0xFFFE; }
-    } else if (ins == I_MOV) { c->regs[second] = c->regs[first]; }
-    else if (ins == I_LOAD) { 
+    } else if (ins == I_MOV) { c->regs[second] = c->regs[first]; }//mov
+    else if (ins == I_LOAD) { //load
       unsigned char tmp[2];
       xmem_load(c->regs[first], tmp); 
       c->regs[second] = (tmp[0] << 8) + tmp[1];
     }
-    else if (ins == I_STOR) { 
+    else if (ins == I_STOR) { //stor
       unsigned char tmp[2] = {c->regs[first] >> 8, c->regs[first] & 255 };
       xmem_store(tmp, c->regs[second]);
     }
-    else if (ins == I_LOADB) {
+    else if (ins == I_LOADB) {//loadb
       unsigned char instruction[2];
       xmem_load(c->regs[first], instruction);
       c->regs[second] = instruction[0];
     }
-    else if (ins == I_STORB) {
+    else if (ins == I_STORB) {//storb
       unsigned char instruction[2];
       xmem_load(c->regs[second], instruction);
       instruction[0] = c->regs[first];

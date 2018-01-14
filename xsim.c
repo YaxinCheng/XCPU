@@ -19,13 +19,21 @@ int main( int argc, char **argv ) {
       printf("Illegal instruction;");
       return 1;
     }
-    if (running == 2) { break; }
+    if (running == 2) { break; }// null reached
     if ((cpu->state & 0x0002) != 0) 
       xcpu_print(cpu);
   }
   return 0;
 }
 
+// Function: static void readXAS(const char* fileName)
+//------------------------------------------------
+// Read in binary data from the file
+//
+// fileName: a string of the file name needs to be read
+//
+// return: void
+//
 static void readXAS(const char* fileName) {
   FILE* xasFile = fopen(fileName, "rb");
   if (xasFile == NULL) { perror("Error openning file"); }

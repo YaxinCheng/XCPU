@@ -20,7 +20,7 @@ int main( int argc, char **argv ) {
       return 1;
     }
     if (running == 2) { break; }
-    if (argc < 4 && (cpu->state & 0x0002) != 0) 
+    if ((cpu->state & 0x0002) != 0) 
       xcpu_print(cpu);
   }
   return 0;

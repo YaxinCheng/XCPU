@@ -69,7 +69,6 @@ extern int xcpu_execute( xcpu *c ) {
       }
     } else if (ins == I_JR) { 
       par = par >> 7 ? -(256 - par) : par;
-      //printf("par >> 7 == %d, par = %d\n", par>>7, par);
       c->pc += par - 2;
     }// jr
     return 1;
@@ -133,7 +132,6 @@ extern int xcpu_execute( xcpu *c ) {
       unsigned char cmd[2];
       xmem_load(c->pc, cmd);
       c->regs[par>>4] = (cmd[0] << 8) + cmd[1];
-      //printf("par >> 4 = %d, c->regs[par>>4] = %d\n", par >> 4, c->regs[par>>4]);
       c->pc += 2;
     }
     return 1;

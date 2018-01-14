@@ -90,8 +90,8 @@ extern int xcpu_execute( xcpu *c ) {
       c->regs[second] = (tmp[0] << 8) + tmp[1];
     }
     else if (ins == I_STOR) { 
-      unsigned char tmp[2] = {c->regs[second] >> 8, c->regs[second] & 255 };
-      xmem_store(tmp, c->regs[first]);
+      unsigned char tmp[2] = {c->regs[first] >> 8, c->regs[first] & 255 };
+      xmem_store(tmp, c->regs[second]);
     }
     else if (ins == I_LOADB) {
       unsigned char instruction[2];

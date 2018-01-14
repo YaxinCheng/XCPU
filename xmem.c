@@ -35,9 +35,9 @@ extern void xmem_store( unsigned char data[2], unsigned short addr ) {
   if (xmemory == NULL || addr < 0 || addr > 65536) { 
     perror("There is something wrong with your command");
   }
-  //memcpy(&xmemory[addr], data, 2);
-  xmemory[addr] = data[0];
-  xmemory[addr+1] = data[1];
+  memcpy(&xmemory[addr], data, 2);
+  //xmemory[addr] = data[0];
+  //xmemory[addr+1] = data[1];
 }
 
 
@@ -55,9 +55,9 @@ extern void xmem_load( unsigned short addr, unsigned char data[2] ) {
   if (xmemory == NULL || addr < 0 || addr > 65536) { 
     perror("There is something wrong with your command");
   }
-  //memcpy(data, &xmemory[addr], 2);
-  data[0] = xmemory[addr];
-  data[1] = xmemory[addr+1];
+  memcpy(data, &xmemory[addr], 2);
+  //data[0] = xmemory[addr];
+  //data[1] = xmemory[addr+1];
 }
 
 

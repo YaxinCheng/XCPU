@@ -14,6 +14,18 @@
  * See xcpu.h for full prototype of xcpu_print()
  */
 
+// Function: static unsigned short bytes2short(const unsigned char bytes[2]);
+// ----------------------------------------------------------------------
+// Convert two bytes to a short number
+//
+// bytes: the value needs to be converted
+//
+// returns: the converted short number
+//
+static unsigned short bytes2short(const unsigned char bytes[2]) {
+  return (bytes[0] << 8) + bytes[1];
+}
+
 extern int xcpu_execute( xcpu *c ) {
 
   /* Your code here */
@@ -32,7 +44,7 @@ extern int xcpu_execute( xcpu *c ) {
     if (ins == I_RET) { // ret
       unsigned char cmd[2];
       xmem_load(c->regs[X_STACK_REG], cmd);
-      c->pc = (cmd[0] << 8) + cmd[1];
+      c->pc = bytes2short(cmd);
       c->regs[X_STACK_REG] += 2;
     } else if (ins == I_CLD) { c->state &= 0xFFFD; }// cld
     else if (ins == I_STD) { c->state |= 0x0002; }// std
@@ -49,9 +61,9 @@ extern int xcpu_execute( xcpu *c ) {
       xmem_store(tmp, c->regs[X_STACK_REG]);
     }
     else if (ins == I_POP) { // pop
-      unsigned char tmp[2];
-      xmem_load(c->regs[X_STACK_REG], tmp);
-      c->regs[param] = (tmp[0] << 8) + tmp[1];
+      unsigned char cmd[2];
+      xmem_load(c->regs[X_STACK_REG], cmd);
+      c->regs[param] = bytes2short(cmd);
       c->regs[X_STACK_REG] += 2;
     }
     else if (ins == I_JMPR) { c->pc = c->regs[param]; }// jmpr
@@ -96,9 +108,9 @@ extern int xcpu_execute( xcpu *c ) {
       else { c->state &= 0xFFFE; }
     } else if (ins == I_MOV) { c->regs[second] = c->regs[first]; }//mov
     else if (ins == I_LOAD) { //load
-      unsigned char tmp[2];
-      xmem_load(c->regs[first], tmp); 
-      c->regs[second] = (tmp[0] << 8) + tmp[1];
+      unsigned char cmd[2];
+      xmem_load(c->regs[first], cmd); 
+      c->regs[second] = bytes2short(cmd);
     }
     else if (ins == I_STOR) { //stor
       unsigned char tmp[2] = {c->regs[first] >> 8, c->regs[first] & 255 };
@@ -119,9 +131,9 @@ extern int xcpu_execute( xcpu *c ) {
   } else { // 11
     short third_bit = (ins >> 5) & 1;// right shift 5, check the right most
     if (third_bit == 0) {
-      unsigned char tmp[2];
-      xmem_load(c->pc, tmp);
-      unsigned short L = (tmp[0] << 8) + tmp[1];
+      unsigned char cmd[2];
+      xmem_load(c->pc, cmd);
+      unsigned short L = bytes2short(cmd);
       if (ins == I_JMP) { c->pc = L; }// JMP
       else if (ins == I_CALL) {// CALL
         c->regs[X_STACK_REG] -= 2;
@@ -132,7 +144,7 @@ extern int xcpu_execute( xcpu *c ) {
     } else {// LOADI
       unsigned char cmd[2];
       xmem_load(c->pc, cmd);
-      c->regs[par>>4] = (cmd[0] << 8) + cmd[1];
+      c->regs[par>>4] = bytes2short(cmd);
       c->pc += 2;
     }
     return 1;

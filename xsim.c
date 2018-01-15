@@ -14,14 +14,10 @@ int main( int argc, char **argv ) {
   readXAS(argv[2]);
   int curr_cycle = 0;
   for(; curr_cycle < cycles; curr_cycle += 1 ) {
-    int running = xcpu_execute(cpu);
-    if (running == 0) {
-      printf("Illegal instruction;");
-      return 1;
-    }
-    if (running == 2) { break; }// null reached
-    if ((cpu->state & 0x0002) != 0) 
-      xcpu_print(cpu);
+    int status = xcpu_execute(cpu);
+    if (status == 0) { perror("Illegal instruction executed"); }
+    if (status == 2) { break; }// null reached
+    if ((cpu->state & 0x0002) != 0) { xcpu_print(cpu); }
   }
   return 0;
 }

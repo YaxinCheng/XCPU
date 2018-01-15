@@ -14,7 +14,7 @@
  * See xcpu.h for full prototype of xcpu_print()
  */
 
-// Function: static unsigned short bytes2short(const unsigned char bytes[2]);
+// Function: static unsigned short bytes2short(const unsigned char bytes[2])
 // ----------------------------------------------------------------------
 // Convert two bytes to a short number
 //

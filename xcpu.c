@@ -8,6 +8,9 @@
 #include "xcpu.h"
 
 #include "xmem.h"
+#include <pthread.h>
+
+extern pthread_mutex_t mutex_lock;
 /* Use 
  *   xcpu_print( c );
  * to print cpu state, where c is of type xcpu * 
@@ -135,17 +138,23 @@ extern int xcpu_execute( xcpu *c ) {
     } else if (ins == I_LOADA) {//loada
       unsigned char bytes[2];
       xmem_load(c->regs[first], bytes);
+      pthread_mutex_lock(&mutex_lock);
       c->regs[second] = bytes2short(bytes);
+      pthread_mutex_unlock(&mutex_lock);
     } else if (ins == I_STORA) {//stora
       unsigned char bytes[] = {c->regs[first] >> 8, c->regs[first] & 255};
+      pthread_mutex_lock(&mutex_lock);
       xmem_store(bytes, c->regs[second]);
+      pthread_mutex_unlock(&mutex_lock);
     } else if (ins == I_SWAP) {//swap
       unsigned short v = c->regs[first];
       unsigned char bytes[2];
       xmem_load(c->regs[second], bytes);
       c->regs[first] = bytes2short(bytes);
       unsigned char tmp[] = {v >> 8, v & 255};
+      pthread_mutex_lock(&mutex_lock);
       xmem_store(tmp, c->regs[second]);
+      pthread_mutex_unlock(&mutex_lock);
     }
     return 1;
   } else { // 11

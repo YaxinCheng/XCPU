@@ -82,7 +82,13 @@ extern int xcpu_execute( xcpu *c ) {
     } else if (ins == I_JR) { // jr
       par = par >> 7 ? -(256 - par) : par;// in jr, the L is signed
       c->pc += par - 2;
-    }// jr
+    } else if (ins == I_CPUID) {// cpu id
+      unsigned char tmp[2] = {c->id >> 8, c->id & 255};
+      xmem_store(tmp, param);
+    } else if (ins == I_CPUNUM) {// cpu num
+      unsigned char tmp[2] = {c->num >> 8, c->num & 255};
+      xmem_store(tmp, param);
+    }
     return 1;
   } else if (operand == 2) {// 10
     short first = par >> 4;
@@ -126,6 +132,20 @@ extern int xcpu_execute( xcpu *c ) {
       xmem_load(c->regs[second], instruction);
       instruction[0] = c->regs[first];
       xmem_store(instruction, c->regs[second]);
+    } else if (ins == I_LOADA) {//loada
+      unsigned char bytes[2];
+      xmem_load(c->regs[first], bytes);
+      c->regs[second] = bytes2short(bytes);
+    } else if (ins == I_STORA) {//stora
+      unsigned char bytes[] = {c->regs[first] >> 8, c->regs[first] & 255};
+      xmem_store(bytes, c->regs[second]);
+    } else if (ins == I_SWAP) {//swap
+      unsigned short v = c->regs[first];
+      unsigned char bytes[2];
+      xmem_load(c->regs[second], bytes);
+      c->regs[first] = bytes2short(bytes);
+      unsigned char tmp[] = {v >> 8, v & 255};
+      xmem_store(tmp, c->regs[second]);
     }
     return 1;
   } else { // 11

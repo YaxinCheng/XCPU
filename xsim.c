@@ -8,7 +8,6 @@
 static void readXAS(const char*); 
 static void* runCPU (void*);
 static int cycles;
-pthread_mutex_t mutex_lock = PTHREAD_MUTEX_INITIALIZER;
 
 int main( int argc, char **argv ) {
   cycles = atoi(argv[1]);

@@ -10,7 +10,7 @@
 #include "xmem.h"
 #include <pthread.h>
 
-extern pthread_mutex_t mutex_lock;
+static pthread_mutex_t mutex_lock = PTHREAD_MUTEX_INITIALIZER;
 /* Use 
  *   xcpu_print( c );
  * to print cpu state, where c is of type xcpu * 
@@ -61,7 +61,9 @@ extern int xcpu_execute( xcpu *c ) {
     else if (ins == I_PUSH) { // push
       c->regs[X_STACK_REG] -= 2;
       unsigned char tmp[2] = {c->regs[param] >> 8, c->regs[param] & 255};
+      pthread_mutex_lock(&mutex_lock);
       xmem_store(tmp, c->regs[X_STACK_REG]);
+      pthread_mutex_unlock(&mutex_lock);
     }
     else if (ins == I_POP) { // pop
       unsigned char cmd[2];
@@ -73,10 +75,18 @@ extern int xcpu_execute( xcpu *c ) {
     else if (ins == I_CALLR) { // callr
       c->regs[X_STACK_REG] -= 2;
       unsigned char tmp[2] = {c->pc >> 8, c->pc & 255};
+      pthread_mutex_lock(&mutex_lock);
       xmem_store(tmp, c->regs[X_STACK_REG]);
+      pthread_mutex_unlock(&mutex_lock);
       c->pc = c->regs[param];
     }
-    else if (ins == I_OUT) { printf("%c", c->regs[param]); }// out
+    else if (ins == I_OUT) { 
+      if (c->id == 0) { 
+        pthread_mutex_lock(&mutex_lock);
+        printf("%c", c->regs[param]); 
+        pthread_mutex_unlock(&mutex_lock);
+      }
+    }// out
     else if (ins == I_BR) {// br
       if ((c->state & 0x0001) == 0x001) {
         par = par >> 7 ? -(256 - par) : par;// in br, the L is signed
@@ -87,10 +97,14 @@ extern int xcpu_execute( xcpu *c ) {
       c->pc += par - 2;
     } else if (ins == I_CPUID) {// cpu id
       unsigned char tmp[2] = {c->id >> 8, c->id & 255};
+      pthread_mutex_lock(&mutex_lock);
       xmem_store(tmp, param);
+      pthread_mutex_unlock(&mutex_lock);
     } else if (ins == I_CPUNUM) {// cpu num
       unsigned char tmp[2] = {c->num >> 8, c->num & 255};
+      pthread_mutex_lock(&mutex_lock);
       xmem_store(tmp, param);
+      pthread_mutex_unlock(&mutex_lock);
     }
     return 1;
   } else if (operand == 2) {// 10
@@ -118,27 +132,35 @@ extern int xcpu_execute( xcpu *c ) {
     } else if (ins == I_MOV) { c->regs[second] = c->regs[first]; }//mov
     else if (ins == I_LOAD) { //load
       unsigned char cmd[2];
+      pthread_mutex_lock(&mutex_lock);
       xmem_load(c->regs[first], cmd); 
+      pthread_mutex_unlock(&mutex_lock);
       c->regs[second] = bytes2short(cmd);
     }
     else if (ins == I_STOR) { //stor
       unsigned char tmp[2] = {c->regs[first] >> 8, c->regs[first] & 255 };
+      pthread_mutex_lock(&mutex_lock);
       xmem_store(tmp, c->regs[second]);
+      pthread_mutex_unlock(&mutex_lock);
     }
     else if (ins == I_LOADB) {//loadb
       unsigned char instruction[2];
+      pthread_mutex_lock(&mutex_lock);
       xmem_load(c->regs[first], instruction);
       c->regs[second] = instruction[0];
+      pthread_mutex_unlock(&mutex_lock);
     }
     else if (ins == I_STORB) {//storb
       unsigned char instruction[2];
+      pthread_mutex_lock(&mutex_lock);
       xmem_load(c->regs[second], instruction);
       instruction[0] = c->regs[first];
       xmem_store(instruction, c->regs[second]);
+      pthread_mutex_unlock(&mutex_lock);
     } else if (ins == I_LOADA) {//loada
       unsigned char bytes[2];
-      xmem_load(c->regs[first], bytes);
       pthread_mutex_lock(&mutex_lock);
+      xmem_load(c->regs[first], bytes);
       c->regs[second] = bytes2short(bytes);
       pthread_mutex_unlock(&mutex_lock);
     } else if (ins == I_STORA) {//stora
@@ -149,10 +171,10 @@ extern int xcpu_execute( xcpu *c ) {
     } else if (ins == I_SWAP) {//swap
       unsigned short v = c->regs[first];
       unsigned char bytes[2];
+      pthread_mutex_lock(&mutex_lock);
       xmem_load(c->regs[second], bytes);
       c->regs[first] = bytes2short(bytes);
       unsigned char tmp[] = {v >> 8, v & 255};
-      pthread_mutex_lock(&mutex_lock);
       xmem_store(tmp, c->regs[second]);
       pthread_mutex_unlock(&mutex_lock);
     }
@@ -167,7 +189,9 @@ extern int xcpu_execute( xcpu *c ) {
       else if (ins == I_CALL) {// CALL
         c->regs[X_STACK_REG] -= 2;
         unsigned char tmp[2] = {c->pc >> 8, c->pc & 255 };
+        pthread_mutex_lock(&mutex_lock);
         xmem_store(tmp, c->regs[X_STACK_REG]);
+        pthread_mutex_unlock(&mutex_lock);
         c->pc = L;
       }
     } else {// LOADI

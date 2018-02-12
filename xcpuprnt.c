@@ -8,16 +8,17 @@
 #include "xis.h"
 #include "xcpu.h"
 #include "xmem.h"
+#include <pthread.h>
 
-static unsigned short allowed_print_cpu = 0;
+static pthread_mutex_t mutex_lock = PTHREAD_MUTEX_INITIALIZER;
 
 extern void xcpu_print( xcpu *c ) {
   int i;
   unsigned char data[2];
   unsigned int op1;
   int op2;
-  if (c->id != allowed_print_cpu) { return; }
-
+  
+  pthread_mutex_lock(&mutex_lock);
   fprintf( stdout, "%2.2d> PC: %4.4x, State: %4.4x\n" , c->id, c->pc, c->state);
   fprintf( stdout, "%2.2d> Registers: ", c->id );
   for( i = 0; i < X_MAX_REGS; i++ ) {
@@ -59,5 +60,6 @@ extern void xcpu_print( xcpu *c ) {
     break;
   }
   fprintf( stdout, "\n\n" );
+  pthread_mutex_unlock(&mutex_lock);
 }
 

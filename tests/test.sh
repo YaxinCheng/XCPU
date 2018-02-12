@@ -1,7 +1,7 @@
 #!/bin/sh
 
 PREFIX=test
-TESTS='0 1 2 3 4 5 6 7 8 9 10 11 12 13 14'
+TESTS='0 1 2 3 4'
 PROG=runme.sh
 count=0
 
@@ -14,7 +14,7 @@ for T in $TESTS; do
   if [ -f $PREFIX.$T.xo ]; then  
     echo ===========================================
     echo Test file: $PREFIX.$T.xo 
-    ./$PROG 100000 $PREFIX.$T.xo 4 > $PREFIX.$T.out
+    ./$PROG 0 $PREFIX.$T.xo 32 | grep -v "^CPU" | grep -v '^$' | sort -n -s > $PREFIX.$T.out
     if diff $PREFIX.$T.out $PREFIX.$T.gold > /dev/null; then
       echo " " PASSED
       let "count = count + 1"

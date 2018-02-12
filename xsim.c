@@ -62,7 +62,7 @@ static void readXAS(const char* fileName) {
 static void* runCPU(void* cpu_context) {
   int curr_cycle = 0;
   xcpu* cpu = (xcpu*)cpu_context;
-  for(; curr_cycle < cycles; curr_cycle += 1 ) {
+  for(; curr_cycle < cycles || cycles == 0; curr_cycle += 1 ) {
     int status = xcpu_execute(cpu);
     if (status == 0) { perror("Illegal instruction executed"); }
     if (status == 2) { break; }// null reached

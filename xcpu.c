@@ -77,9 +77,7 @@ extern int xcpu_execute( xcpu *c ) {
       c->pc = c->regs[param];
     }
     else if (ins == I_OUT) { 
-      if (c->id == 0) { 
-        printf("%c", c->regs[param]); 
-      }
+      printf("%c", c->regs[param]); 
     }// out
     else if (ins == I_BR) {// br
       if ((c->state & 0x0001) == 0x001) {

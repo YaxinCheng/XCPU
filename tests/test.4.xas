@@ -1,13 +1,80 @@
+###############################################################################
+# Test swap by using it in a spinlock 
+#############
   std
-  loadi jr1, r4 
-  jmpr r4
-jr2:
-  loadi jr3, r4 
-  jmpr r4
-jr1:
-  loadi jr2, r4 
-  jmpr r4
-jr3:
+  cpuid r0             # determine cpu id
+  cld
+  loadi 1, r3          # set increment to 1
+  loadi 1, r1          # test if odd or even
+  test r1, r0          #
+  br odd               # branch if odd
+  loadi 0xffff, r3     #   if even set increment to -1
+odd:
+  loadi counter, r1    # load address of counter
+  loadi flag, r2       # load address of location to be concurrently accessed
+
+  loadi 0xff, r0       # load test counter
+loop:                  # perform loop until we run out of time
+  dec   r0             # decrement test loop counter
+
+  loadi 1, r4          # prime r4 with 1 to acquire spinlock using swap
+tns_loop:
+  swap  r4, r2         # loop until lock is acquired
+  test  r4, r4
+  br    tns_loop
+  
+  load  r1, r4         # load shared value
+  add   r3, r4         # perform incrment
+  stor  r4, r1         # store shared value
+
+  xor   r4, r4         # zero r4
+  stora r4, r2         # reset flag
+
+  test r0, r0          # test if loop done
+  br loop
+
+  loadi fini, r2
+  cpuid r0
+floop1:
+  load r2, r3
+  xor  r0, r3
+  test r3, r3
+  br floop1
+  inc  r0
+  stor r0, r2
+
+  cpunum r3
+  cpuid  r0
+  dec    r3
+  xor  r0, r3
+  test r3, r3
+  br fwait
+  stor r0, r2
+fwait:
+  load r2, r3
+  xor  r0, r3
+  test r3, r3
+  br fwait
+  dec  r0
+  stor r0, r2
+
+done:
+  load  r1, r4         # test if result is 0
+  test  r4, r4
+  br    oops
+.literal 0
+ 
+oops:
+  std                  # Test failed indicator
+  cpuid r0             # perform cpuid to do register dump
 
 .literal 0
 
+flag:
+.literal 0
+
+counter:
+.literal 0
+
+fini:
+.literal 0

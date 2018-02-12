@@ -1,14 +1,9 @@
-  std
-  loadi 0, r0
-  loadi 1, r1
-  loadi 2, r2
-  test  r1, r1
-  test  r1, r2
-  cmp   r1, r2
-  cmp   r1, r1
-  cmp   r2, r1
-  equ   r1, r1
-  equ   r1, r2
+###############################################################################
+# test the cpuid instruction
+# state register should have the third LSB set after the sti instruction.
+#############
+  std                  # enable debug
+  cpuid r0             # determine id of cpu
+  or r0, r0            # noop operationr
 
 .literal 0
-

@@ -1,9 +1,0 @@
-###############################################################################
-# test the cpuid instruction
-# state register should have the third LSB set after the sti instruction.
-#############
-  std                  # enable debug
-  cpuid r0             # determine id of cpu
-  or r0, r0            # noop operationr
-
-.literal 0

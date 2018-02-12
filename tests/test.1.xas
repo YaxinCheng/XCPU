@@ -1,9 +1,0 @@
-###############################################################################
-# test the cpunum instruction
-# state register should have the third LSB set after the sti instruction.
-#############
-  std                  # enable debug
-  cpunum r0            # determine number of cpus
-  or r0, r0            # noop operationr
-
-.literal 0

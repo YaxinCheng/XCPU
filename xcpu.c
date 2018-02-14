@@ -88,11 +88,9 @@ extern int xcpu_execute( xcpu *c ) {
       par = par >> 7 ? -(256 - par) : par;// in jr, the L is signed
       c->pc += par - 2;
     } else if (ins == I_CPUID) {// cpu id
-      unsigned char tmp[2] = {c->id >> 8, c->id & 255};
-      xmem_store(tmp, param);
+      c->regs[param] = c->id;
     } else if (ins == I_CPUNUM) {// cpu num
-      unsigned char tmp[2] = {c->num >> 8, c->num & 255};
-      xmem_store(tmp, param);
+      c->regs[param] = c->num;
     }
     return 1;
   } else if (operand == 2) {// 10
@@ -169,9 +167,7 @@ extern int xcpu_execute( xcpu *c ) {
       else if (ins == I_CALL) {// CALL
         c->regs[X_STACK_REG] -= 2;
         unsigned char tmp[2] = {c->pc >> 8, c->pc & 255 };
-        pthread_mutex_lock(&mutex_lock);
         xmem_store(tmp, c->regs[X_STACK_REG]);
-        pthread_mutex_unlock(&mutex_lock);
         c->pc = L;
       }
     } else {// LOADI

@@ -23,7 +23,7 @@ int main( int argc, char **argv ) {
   readXAS(argv[2]);
   pthread_t *tid = (pthread_t*)malloc(sizeof(pthread_t) * cpu_num);
   for (i = 0; i < cpu_num; i += 1) {
-    if (!pthread_create(tid + i, NULL, runCPU, cpu+i)) { perror("Threading");}
+    if(pthread_create(tid + i, NULL, runCPU, cpu+i)) { perror("Threading"); }
   }
   for (i = 0; i < cpu_num; i += 1) {
     pthread_join(tid[i], NULL);

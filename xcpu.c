@@ -9,6 +9,7 @@
 
 #include "xmem.h"
 #include <pthread.h>
+#include "xdev.h"
 
 static pthread_mutex_t mutex_lock = PTHREAD_MUTEX_INITIALIZER;
 /* Use 
@@ -30,8 +31,6 @@ static unsigned short bytes2short(const unsigned char bytes[2]) {
 }
 
 extern int xcpu_execute( xcpu *c ) {
-
-  /* Your code here */
   short ins, par; // Every word is [ ins(8-bit) | par (8-bit) ]
   {// read in the instruction and separate to ins and par
     unsigned char instruction[2];
@@ -155,6 +154,22 @@ extern int xcpu_execute( xcpu *c ) {
       unsigned char tmp[] = {v >> 8, v & 255};
       xmem_store(tmp, c->regs[second]);
       pthread_mutex_unlock(&mutex_lock);
+    } else if (ins == I_OUTP) {//outp
+      pthread_mutex_lock(&mutex_lock);
+      int result = xdev_outp_sync(c->regs[first], c->regs[second]);
+      c->state |= result ? 0x0001 : 0xFFFE;
+      pthread_mutex_unlock(&mutex_lock);
+    } else if (ins == I_OUTPA) {//outpa
+      int result = xdev_outp_async(c->regs[first], c->regs[second]);
+      c->state |= result ? 0x0001 : 0xFFFE;
+    } else if (ins == I_INP) {//inp
+      pthread_mutex_lock(&mutex_lock);
+      int result = xdev_inp_sync(c->regs[first], &c->regs[second]);
+      c->state |= result ? 0x0001 : 0xFFFE;
+      pthread_mutex_unlock(&mutex_lock);
+    } else if (ins == I_INPA) {//inpa
+      int result = xdev_inp_poll(c->regs[first], &c->regs[second]);
+      c->state |= result ? 0x0001 : 0xFFFE;
     }
     return 1;
   } else { // 11

@@ -4,6 +4,7 @@
 #include "xmem.h"
 #include <stdlib.h>
 #include <pthread.h>
+#include "devices.h"
 
 static void readXAS(const char*); 
 static void* runCPU (void*);
@@ -21,11 +22,20 @@ int main( int argc, char **argv ) {
     cpu[i].num = cpu_num;
   }
   readXAS(argv[2]);
-  pthread_t *tid = (pthread_t*)malloc(sizeof(pthread_t) * cpu_num);
-  for (i = 0; i < cpu_num; i += 1) {
-    if(pthread_create(tid + i, NULL, runCPU, cpu+i)) { perror("Threading"); }
+  pthread_t *tid = (pthread_t*)malloc(sizeof(pthread_t) * (cpu_num + 3));
+  for (i = 0; i < cpu_num + 3; i += 1) {
+    void*(*threadFunc)(void*) = NULL;
+    void* args = NULL;
+    if (i == 0) { threadFunc = device_display; }
+    else if (i == 1) { threadFunc = device_keyboard; }
+    else if (i == 2) { threadFunc = device_random; }
+    else { 
+      threadFunc = runCPU;
+      args = cpu + (i - 3);
+    }
+    if(pthread_create(tid + i, NULL, threadFunc, args)) { perror("Threading"); }
   }
-  for (i = 0; i < cpu_num; i += 1) {
+  for (i = 0; i < cpu_num + 3; i += 1) {
     pthread_join(tid[i], NULL);
   }
   return 0;

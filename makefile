@@ -1,12 +1,13 @@
 # Targets & general dependencies
 PROGRAM = xsim
-HEADERS = xis.h xcpu.h xmem.h
-OBJS = xsim.o xcpu.o xmem.o xcpuprnt.o
-ADD_OBJS = 
+HEADERS = xis.h xcpu.h 
+OBJS = xsim.o xcpu.o devices.o xdev.o
+ADD_OBJS = xcpuprnt.o xmem.o 
+GOLD = xsim_gold 
 
 # compilers, linkers, utilities, and flags
 CC = gcc
-CFLAGS = -Wall -g -pthread
+CFLAGS = -Wall -g
 COMPILE = $(CC) $(CFLAGS)
 LINK = $(CC) $(CFLAGS) -o $@ 
 
@@ -16,28 +17,28 @@ LINK = $(CC) $(CFLAGS) -o $@
 
 
 # explicit rules
-all: xld xas xcc xsim_gold xsim 
+all: xld xas xcc xsim $(GOLD)
 
 $(PROGRAM): $(OBJS) $(ADD_OBJS)
-	$(LINK) $(OBJS) $(ADD_OBJS)
+	$(LINK) $(OBJS) $(ADD_OBJS) -l pthread libxsim.a
 
-xsim_gold: libxsim.a xcpuprnt.o
-	$(LINK) libxsim.a xcpuprnt.o
+xsim_gold: libxsim.a $(ADD_OBJS)
+	$(LINK) libxsim.a $(ADD_OBJS) -l pthread
 
 xas: xas.o xreloc.o
 	$(LINK) xas.o xreloc.o
-	
+
 xld: xld.o xreloc.o
 	$(LINK) xld.o xreloc.o
-	
+
 xcc: xcc.o 
 	$(LINK) xcc.o
 	
-lib: xsim_gold.o xcpu_gold.o xmem_gold.o
-	 ar -r libxsim.a xsim_gold.o xcpu_gold.o xmem_gold.o
+lib: xsim_gold.o xcpu_gold.o xdev_gold.o devices_gold.o
+	 ar -r libxsim.a xsim_gold.o xcpu_gold.o xdev_gold.o devices_gold.o
 
 clean:
-	rm -f *.o *.xo *.xx $(PROGRAM) xas xld xcc xsim_gold
+	rm -f *.o *.xo *.xx $(PROGRAM) xas xld xcc xmkos $(GOLD)
 
 zip:
 	make clean

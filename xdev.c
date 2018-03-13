@@ -22,6 +22,7 @@ typedef struct {
 
 typedef struct {
   Queue* ports[NUM_PORTS]; 
+  pthread_mutex_t lock;
 } Monitor;
 
 static void queue_init(Queue* q) {
@@ -56,13 +57,15 @@ static unsigned short queue_peak(Queue* queue) {
   return queue->count == 0 ? EMP_QUEUE : queue->_content[queue->_exit];
 }
 
-static Monitor monitor = { .ports = { NULL } };
+static Monitor monitor = { .ports = { NULL }, .lock=PTHREAD_MUTEX_INITIALIZER };
 
 int xdev_associate_port( unsigned short port ) {
   if (port >= NUM_PORTS || monitor.ports[port] != NULL) { return 0; }
+  pthread_mutex_lock(&monitor.lock);
   monitor.ports[port] = (Queue*)malloc(sizeof(Queue) * 2);
   int i = 0;
   for(; i < 2; i += 1) { queue_init(&monitor.ports[port][i]); }
+  pthread_mutex_unlock(&monitor.lock);
   return 1; 
 }
 

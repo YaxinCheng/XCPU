@@ -155,21 +155,21 @@ extern int xcpu_execute( xcpu *c ) {
       xmem_store(tmp, c->regs[second]);
       pthread_mutex_unlock(&mutex_lock);
     } else if (ins == I_OUTP) {//outp
-      pthread_mutex_lock(&mutex_lock);
       int result = xdev_outp_sync(c->regs[first], c->regs[second]);
-      c->state |= result ? 0x0001 : 0xFFFE;
-      pthread_mutex_unlock(&mutex_lock);
+      if(result) c->state |= 0x0001;
+      else c->state &= 0xFFFE;
     } else if (ins == I_OUTPA) {//outpa
       int result = xdev_outp_async(c->regs[first], c->regs[second]);
-      c->state |= result ? 0x0001 : 0xFFFE;
+      if(result) c->state |= 0x0001;
+      else c->state &= 0xFFFE;
     } else if (ins == I_INP) {//inp
-      pthread_mutex_lock(&mutex_lock);
       int result = xdev_inp_sync(c->regs[first], &c->regs[second]);
-      c->state |= result ? 0x0001 : 0xFFFE;
-      pthread_mutex_unlock(&mutex_lock);
+      if(result) c->state |= 0x0001;
+      else c->state &= 0xFFFE;
     } else if (ins == I_INPA) {//inpa
       int result = xdev_inp_poll(c->regs[first], &c->regs[second]);
-      c->state |= result ? 0x0001 : 0xFFFE;
+      if(result) c->state |= 0x0001;
+      else c->state &= 0xFFFE;
     }
     return 1;
   } else { // 11

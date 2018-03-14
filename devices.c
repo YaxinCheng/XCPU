@@ -30,8 +30,8 @@ extern void *device_display( void *arg ) {
     unsigned short data;
     if (!xdev_dev_get(DISP_PORT, &data)) { perror("Failed get"); }
     unsigned char character = data & 255;
-    putchar(character);
-    //printf("%c\n", character);
+    //putchar(character);
+    printf("%c\n", character);
   }
   return NULL;
 }
@@ -52,9 +52,9 @@ extern void *device_keyboard( void *arg ) {
   /* your code here */
   if (!xdev_associate_port(KBD_PORT)) { perror("Port binding failed");}
   while(1) { 
-    unsigned short data = (unsigned short)getchar();
-    fflush(stdin);
-    if (data != 10) xdev_dev_put(data, KBD_PORT); 
+    unsigned short data;
+    while((data = (unsigned short)getchar()) == 10) {}
+    xdev_dev_put(data, KBD_PORT); 
   }
   return NULL;
 }

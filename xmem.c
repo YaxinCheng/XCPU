@@ -5,18 +5,20 @@
 #include "xis.h"
 #include "xmem.h"
 
-static unsigned char* xmemory = NULL;
+static unsigned char *memory;
+static int phys_size;
 
 /* title: init memory with a specific size
  * param: size of physical memory (between 0 and 65536)
- * function: allocates and iniializes physical memory of specified size
+ * function: iniializes physical memory of specified size
  * returns: 1 if successful, 0 if not
  */
 extern int xmem_init( int size ) {
- 
-  /* Your code here */
-  xmemory = (unsigned char*)malloc(size);
-  if (xmemory == NULL) { return 1; }
+  if( size <= XIS_MEM_SIZE ) {
+    phys_size = size;
+    memory = calloc( 1, size );
+    return memory != NULL;
+  }
   return 0;
 }
 
@@ -30,12 +32,12 @@ extern int xmem_init( int size ) {
  * returns: void
  */
 extern void xmem_store( unsigned char data[2], unsigned short addr ) {
- 
-  /* Your code here */
-  if (xmemory == NULL || addr < 0 || addr > 65536) { 
-    perror("There is something wrong with your command");
+  if( memory && ( addr <= phys_size - 2 ) ) {
+    memcpy( memory + addr, data, 2 );
+  } else {
+    printf( "Memory store error at %d\n", addr );
+    exit( 1 );
   }
-  memcpy(&xmemory[addr], data, 2);
 }
 
 
@@ -48,12 +50,12 @@ extern void xmem_store( unsigned char data[2], unsigned short addr ) {
  * returns: void
  */
 extern void xmem_load( unsigned short addr, unsigned char data[2] ) {
- 
-  /* Your code here */
-  if (xmemory == NULL || addr < 0 || addr > 65536) { 
-    perror("There is something wrong with your command");
+  if( memory && ( addr <= phys_size - 2 ) ) {
+    memcpy( data, memory + addr, 2 );
+  } else {
+    printf( "Memory load error at %d\n", addr );
+    exit( 1 );
   }
-  memcpy(data, &xmemory[addr], 2);
 }
 
 

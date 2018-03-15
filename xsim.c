@@ -35,7 +35,7 @@ int main( int argc, char **argv ) {
     }
     if(pthread_create(tid + i, NULL, threadFunc, args)) { perror("Threading"); }
   }
-  for (i = 0; i < cpu_num + 3; i += 1) {
+  for (i = 3; i < cpu_num + 3; i += 1) {
     pthread_join(tid[i], NULL);
   }
   return 0;

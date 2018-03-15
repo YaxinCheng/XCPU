@@ -110,8 +110,7 @@ int xdev_outp_sync( unsigned short data, unsigned short port ) {
 int xdev_outp_async( unsigned short data, unsigned short port ) {
   if (port >= NUM_PORTS || monitor.ports[port] == NULL) { return 0; }
   //printf(" %d >>> outp async is called, data = %d\n", port, data);
-  if (!queue_enqueue(&monitor.ports[port][OUTPUT], data)) { return 0; }
-  return 1;
+  return queue_enqueue(&monitor.ports[port][OUTPUT], data);
 }
 
 

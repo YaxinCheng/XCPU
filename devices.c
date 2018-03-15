@@ -32,7 +32,6 @@ extern void *device_display( void *arg ) {
     unsigned char character = data & 255;
     putchar(character);
     fflush(stdout);
-    // printf("%c\n", character);
   }
   return NULL;
 }

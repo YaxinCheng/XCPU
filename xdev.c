@@ -11,6 +11,8 @@
 #define EMP_QUEUE 65535
 #define INPUT 0
 #define OUTPUT 1
+#define max(a,b) a>=b?a:b
+#define min(a,b) a>=b?b:a
 
 typedef struct {
   unsigned short* _content;
@@ -18,6 +20,8 @@ typedef struct {
   unsigned short _entry;
   unsigned short count;
   pthread_mutex_t lock;
+  pthread_cond_t d2c_cond; //device to cpu condition
+  pthread_cond_t c2d_cond;// cpu to device condition 
 } Queue;
 
 typedef struct {
@@ -31,6 +35,8 @@ static void queue_init(Queue* q) {
   q->_entry = 0;
   q->count = 0;
   pthread_mutex_init(&q->lock, NULL);
+  pthread_cond_init(&q->d2c_cond, NULL);
+  pthread_cond_init(&q->c2d_cond, NULL);
 }
 
 static int queue_enqueue(Queue* queue, unsigned short data) {
@@ -41,7 +47,7 @@ static int queue_enqueue(Queue* queue, unsigned short data) {
   }
   queue->_content[queue->_entry] = data;
   queue->_entry = (queue->_entry + 1) % MAX_QUEUE;
-  queue->count += 1;
+  queue->count = min(queue->count + 1, MAX_QUEUE);
   pthread_mutex_unlock(&queue->lock);
   return 1;
 }
@@ -54,7 +60,7 @@ static unsigned short queue_dequeue(Queue* queue) {
   } 
   unsigned short data = queue->_content[queue->_exit];
   queue->_exit = (queue->_exit + 1) % MAX_QUEUE;
-  queue->count -= 1;
+  queue->count = max(queue->count - 1, 0);
   pthread_mutex_unlock(&queue->lock);
   return data;
 }
@@ -81,8 +87,17 @@ int xdev_associate_port( unsigned short port ) {
 int xdev_dev_put( unsigned short data, unsigned short port ) {
   if (port >= NUM_PORTS || monitor.ports[port] == NULL) { return 0; }
   //printf(" %d >>> put is called\n", port);
-  if (!queue_enqueue(&monitor.ports[port][INPUT], data)) { return 0; }
-  while(queue_peak(&monitor.ports[port][INPUT]) == data) { }
+  pthread_mutex_lock(&monitor.ports[port][INPUT].lock);
+  Queue* workingQueue = &monitor.ports[port][INPUT];
+  pthread_mutex_unlock(&monitor.ports[port][INPUT].lock);
+  if (!queue_enqueue(workingQueue, data)) { return 0; }
+  pthread_mutex_lock(&workingQueue->lock);
+  pthread_cond_signal(&workingQueue->d2c_cond);
+  pthread_mutex_unlock(&workingQueue->lock);
+  pthread_mutex_lock(&workingQueue->lock);
+  while(queue_peak(workingQueue) != EMP_QUEUE)
+    pthread_cond_wait(&workingQueue->c2d_cond, &workingQueue->lock);
+  pthread_mutex_unlock(&workingQueue->lock);
   //printf(" %d >>> put is finished, data: %d\n", port, data);
   return 1; 
 }
@@ -91,7 +106,17 @@ int xdev_dev_put( unsigned short data, unsigned short port ) {
 int xdev_dev_get( unsigned short port, unsigned short *data ) {
   if (port >= NUM_PORTS || monitor.ports[port] == NULL) { return 0; }
   //printf(" %d >>> get is called\n", port);
-  while((*data = queue_dequeue(&monitor.ports[port][OUTPUT])) == EMP_QUEUE) { }
+  pthread_mutex_lock(&monitor.ports[port][OUTPUT].lock);
+  Queue* workingQueue = &monitor.ports[port][OUTPUT];
+  pthread_mutex_unlock(&monitor.ports[port][OUTPUT].lock);
+  pthread_mutex_lock(&workingQueue->lock);
+  while(queue_peak(workingQueue) == EMP_QUEUE)
+    pthread_cond_wait(&workingQueue->c2d_cond, &workingQueue->lock);
+  pthread_mutex_unlock(&workingQueue->lock);
+  *data = queue_dequeue(workingQueue);
+  pthread_mutex_lock(&workingQueue->lock);
+  pthread_cond_signal(&workingQueue->d2c_cond);
+  pthread_mutex_unlock(&workingQueue->lock);
   //printf(" %d >>> get is finished, data: %d\n", port, *data);
   return 1;
 }
@@ -100,8 +125,17 @@ int xdev_dev_get( unsigned short port, unsigned short *data ) {
 int xdev_outp_sync( unsigned short data, unsigned short port ) {
   if (port >= NUM_PORTS || monitor.ports[port] == NULL) { return 0; }
   //printf(" %d >>> outp is called\n", port);
-  if (!queue_enqueue(&monitor.ports[port][OUTPUT], data)) { return 0; }
-  while(queue_peak(&monitor.ports[port][OUTPUT]) == data) {}
+  pthread_mutex_lock(&monitor.ports[port][OUTPUT].lock);
+  Queue* workingQueue = &monitor.ports[port][OUTPUT];
+  pthread_mutex_unlock(&monitor.ports[port][OUTPUT].lock);
+  if (!queue_enqueue(workingQueue, data)) { return 0; }
+  pthread_mutex_lock(&workingQueue->lock);
+  pthread_cond_signal(&workingQueue->c2d_cond);
+  pthread_mutex_unlock(&workingQueue->lock);
+  pthread_mutex_lock(&workingQueue->lock);
+  while(queue_peak(workingQueue) != EMP_QUEUE)
+    pthread_cond_wait(&workingQueue->d2c_cond, &workingQueue->lock);
+  pthread_mutex_unlock(&workingQueue->lock);
   //printf(" %d >>> outp is finished, data = %d\n", port, data);
   return 1; 
 }
@@ -110,14 +144,30 @@ int xdev_outp_sync( unsigned short data, unsigned short port ) {
 int xdev_outp_async( unsigned short data, unsigned short port ) {
   if (port >= NUM_PORTS || monitor.ports[port] == NULL) { return 0; }
   //printf(" %d >>> outp async is called, data = %d\n", port, data);
-  return queue_enqueue(&monitor.ports[port][OUTPUT], data);
+  int result = queue_enqueue(&monitor.ports[port][OUTPUT], data);
+  if (result) {
+    pthread_mutex_lock(&monitor.ports[port][OUTPUT].lock);
+    pthread_cond_signal(&monitor.ports[port][OUTPUT].c2d_cond);
+    pthread_mutex_unlock(&monitor.ports[port][OUTPUT].lock);
+  }
+  return result;
 }
 
 
 int xdev_inp_sync( unsigned short port, unsigned short *data ) {
   if (port >= NUM_PORTS || monitor.ports[port] == NULL) { return 0; }
   //printf(" %d >>> inp sync is called\n", port);
-  while ((*data = queue_dequeue(&monitor.ports[port][INPUT])) == EMP_QUEUE) { }
+  pthread_mutex_lock(&monitor.ports[port][INPUT].lock);
+  Queue* workingQueue = &monitor.ports[port][INPUT];
+  pthread_mutex_unlock(&monitor.ports[port][INPUT].lock);
+  pthread_mutex_lock(&workingQueue->lock);
+  while(queue_peak(workingQueue) == EMP_QUEUE)
+    pthread_cond_wait(&workingQueue->d2c_cond, &workingQueue->lock);
+  pthread_mutex_unlock(&workingQueue->lock);
+  *data = queue_dequeue(workingQueue);
+  pthread_mutex_lock(&workingQueue->lock);
+  pthread_cond_signal(&workingQueue->c2d_cond);
+  pthread_mutex_unlock(&workingQueue->lock);
   //printf(" %d >>> inp sync is finished, data = %d \n", port, *data);
   return 1;
 }
@@ -126,7 +176,13 @@ int xdev_inp_sync( unsigned short port, unsigned short *data ) {
 int xdev_inp_poll( unsigned short port, unsigned short *data ) {
   if (port >= NUM_PORTS || monitor.ports[port] == NULL) { return 0; }
   //printf(" %d >>> inp poll is called\n", port);
-  return (*data = queue_dequeue(&monitor.ports[port][INPUT])) != EMP_QUEUE;
+  int result = (*data = queue_dequeue(&monitor.ports[port][INPUT]))!=EMP_QUEUE;
+  if (result) {
+    pthread_mutex_lock(&monitor.ports[port][INPUT].lock);
+    pthread_cond_signal(&monitor.ports[port][INPUT].c2d_cond);
+    pthread_mutex_unlock(&monitor.ports[port][INPUT].lock);
+  }
+  return result;
 }
 
 

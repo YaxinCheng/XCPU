@@ -156,9 +156,9 @@ int xdev_outp_async( unsigned short data, unsigned short port ) {
 int xdev_inp_sync( unsigned short port, unsigned short *data ) {
   if (port >= NUM_PORTS || monitor.ports[port] == NULL) { return 0; }
   //printf(" %d >>> inp sync is called\n", port);
-  pthread_mutex_lock(&monitor.ports[port][INPUT].lock);
+  pthread_mutex_lock(&monitor.lock);
   Queue* workingQueue = &monitor.ports[port][INPUT];
-  pthread_mutex_unlock(&monitor.ports[port][INPUT].lock);
+  pthread_mutex_unlock(&monitor.lock);
   pthread_mutex_lock(&monitor.lock);
   while((*data = queue_dequeue(workingQueue)) == EMP_QUEUE)
     pthread_cond_wait(&workingQueue->d2c_cond, &monitor.lock);

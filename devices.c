@@ -51,9 +51,7 @@ extern void *device_keyboard( void *arg ) {
 
   /* your code here */
   if (!xdev_associate_port(KBD_PORT)) { perror("Port binding failed");}
-  while(1) { 
-    xdev_dev_put((unsigned short)getchar(), KBD_PORT); 
-  }
+  while(1) { xdev_dev_put((unsigned short)getchar(), KBD_PORT); }
   return NULL;
 }
 

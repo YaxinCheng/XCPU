@@ -70,7 +70,10 @@ extern void *device_random( void *arg ) {
 
   /* your code here */
   if (!xdev_associate_port(RAND_PORT)) { perror("Port binding failed");}
-  srand(time(NULL));
-  while(1) { xdev_dev_put((unsigned short)rand(), RAND_PORT); }
+  while(1) { 
+    unsigned short val = (unsigned short)rand();
+    srand(val);
+    xdev_dev_put(val, RAND_PORT); 
+  }
   return NULL;
 }

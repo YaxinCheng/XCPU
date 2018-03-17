@@ -15,20 +15,28 @@
 #define min(a,b) a>=b?b:a
 
 typedef struct {
-  unsigned short* _content;
-  unsigned short _exit;
-  unsigned short _entry;
-  unsigned short count;
-  pthread_mutex_t lock;
+  unsigned short* _content;// queue content storage
+  unsigned short _exit;// index to dequeue
+  unsigned short _entry;// index to enqueue
+  unsigned short count;// queue length
+  pthread_mutex_t lock;// queue lock
   pthread_cond_t d2c_cond; //device to cpu condition
   pthread_cond_t c2d_cond;// cpu to device condition 
-} Queue;
+} Queue;// queue struct
 
 typedef struct {
-  Queue* ports[NUM_PORTS]; 
-  pthread_mutex_t lock;
+  Queue* ports[NUM_PORTS]; // each port contains several queues
+  pthread_mutex_t lock;// Monitor lock
 } Monitor;
 
+// Function: static void queue_init(Queue* q)
+// ----------------------------------------------
+// Queue initializer
+//
+// q: a pointer needs to be initilized to a queue
+//
+// return void
+//
 static void queue_init(Queue* q) {
   q->_content = (unsigned short*)malloc(sizeof(unsigned short) * MAX_QUEUE);
   q->_exit = 0;
@@ -39,6 +47,15 @@ static void queue_init(Queue* q) {
   pthread_cond_init(&q->c2d_cond, NULL);
 }
 
+// Function: static queue_enqueue(Queue* queue, unsigned short data)
+// --------------------------------------------
+// Enqueue one data to the queue
+// 
+// queue: the queue that needs to be enqueued
+// data: the data that needs to be put into the queue
+//
+// return 0: failed, 1: succeeded
+//
 static int queue_enqueue(Queue* queue, unsigned short data) {
   pthread_mutex_lock(&queue->lock);
   if (queue->count >= MAX_QUEUE) { 
@@ -52,6 +69,14 @@ static int queue_enqueue(Queue* queue, unsigned short data) {
   return 1;
 }
 
+// Function: static unsigned short queue_dequeue(Queue* queue)
+// --------------------------------------------
+// Dequeue one element from the queue
+//
+// queue: the queue where the element should be dequeued
+//
+// return EMP_QUEUE: failed to dequeue, data: succeeded dequeued from queue
+//
 static unsigned short queue_dequeue(Queue* queue) {
   pthread_mutex_lock(&queue->lock);
   if(queue->count <= 0) { 
@@ -65,6 +90,14 @@ static unsigned short queue_dequeue(Queue* queue) {
   return data;
 }
 
+// Function: static unsigned short queue_peak(Queue* queue)
+// --------------------------------------------
+// Peak the first element that can be dequeued
+//
+// queue: the queue that needs to be peaked
+//
+// return EMP_QUEUE: the queue is empty, data: the data that can be dequeued
+//
 static unsigned short queue_peak(Queue* queue) {
   return queue->count == 0 ? EMP_QUEUE : queue->_content[queue->_exit];
 }
@@ -86,10 +119,9 @@ int xdev_associate_port( unsigned short port ) {
 
 int xdev_dev_put( unsigned short data, unsigned short port ) {
   if (port >= NUM_PORTS || monitor.ports[port] == NULL) { return 0; }
-  //printf(" %d >>> put is called\n", port);
   pthread_mutex_lock(&monitor.lock);
   Queue* workingQueue = &monitor.ports[port][INPUT];
-  if (!queue_enqueue(workingQueue, data)) { 
+  if (!queue_enqueue(workingQueue, data)) {
     pthread_mutex_unlock(&monitor.lock);
     return 0; 
   }
@@ -97,7 +129,6 @@ int xdev_dev_put( unsigned short data, unsigned short port ) {
   while(queue_peak(workingQueue) != EMP_QUEUE)
     pthread_cond_wait(&workingQueue->c2d_cond, &monitor.lock);
   pthread_mutex_unlock(&monitor.lock);
-  //printf(" %d >>> put is finished, data: %d\n", port, data);
   return 1; 
 }
 
